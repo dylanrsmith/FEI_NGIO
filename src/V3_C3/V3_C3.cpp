@@ -6,7 +6,6 @@
 #include <Pin_config_C3.h>
 #include <Reset_Reason_C3.h>
 
-
 ESP32SPISlave slave;
 Adafruit_NeoPixel RGBled = Adafruit_NeoPixel(1, 10, NEO_GRB + NEO_KHZ800); // on pin10
 byte newLEDdata[3];
@@ -73,7 +72,6 @@ void task_process_buffer(void *pvParameters)
   while (1)
   {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
     // show received data
     // Serial.print("RX: ");
     // for (size_t i = 0; i < BUFFER_SIZE; ++i)
@@ -83,17 +81,17 @@ void task_process_buffer(void *pvParameters)
     // Serial.println();
     uint16_t checkSumFromS3 = spi_slave_rx_buf[6] + (spi_slave_rx_buf[7] << 8);
     uint16_t checkSumOfS3 = crc.checksumCalculator(spi_slave_rx_buf, 6);
+    uint16_t data = data_out.load();
 
-    // if (spi_slave_rx_buf[0] == '$' && spi_slave_rx_buf[4] == '\n') {
-    if (checkSumOfS3 == checkSumFromS3 && checkSumFromS3 != 0){
-      byte b1 = 0x30;
+    if (checkSumOfS3 == checkSumFromS3 && checkSumFromS3 != 0)
+    {
       spi_slave_tx_buf[0] = spi_slave_rx_buf[0];
-      spi_slave_tx_buf[1] = b1;//spi_slave_rx_buf[1];
-      spi_slave_tx_buf[2] = b1+1;//spi_slave_rx_buf[2];
+      spi_slave_tx_buf[1] = data;
+      spi_slave_tx_buf[2] = data >> 8;
       spi_slave_tx_buf[3] = spi_slave_rx_buf[3];
       spi_slave_tx_buf[4] = spi_slave_rx_buf[4];
       spi_slave_tx_buf[5] = spi_slave_rx_buf[5];
-      
+
       uint16_t checkSumOfC3 = crc.checksumCalculator(spi_slave_tx_buf, 6);
       spi_slave_tx_buf[6] = checkSumOfC3;
       spi_slave_tx_buf[7] = checkSumOfC3 >> 8;
@@ -139,11 +137,37 @@ void loop()
   uint8_t type = slot_type.load();
   RGBled.setPixelColor(0, primaryColors[type]);
   RGBled.show();
+  uint16_t data;
+  switch (type)
+  {
+  case 1:
+    data = 1000;
+    break;
+  case 2:
+    data = 2000;
+    break;
+  case 3:
+    data = 3000;
+    break;
+  case 4:
+    data = 4000;
+    break;
+  case 5:
+    data = 5000;
+    break;
+  case 6:
+    data = 6000;
+    break;
+  case 7:
+    data = 7000;
+    break;
+  case 8:
+    data = 8000;
+    break;
+  default:
+    data = 0;
+    break;
+  }
+  data_out.store(data);
   delayMicroseconds(100);
-
-  // if (newDataAvail) {
-  //   newDataAvail = false;
-  //   RGBled.setPixelColor(0, RGBled.Color(newLEDdata[0], newLEDdata[1], newLEDdata[2])); // Moderately bright green color.
-  //   RGBled.show();
-  // }
 }

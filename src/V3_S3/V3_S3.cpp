@@ -133,6 +133,7 @@ void writeSlotBoard(byte slotNumber, byte command, byte slot_type)
     Serial.print("]  PASS  ");
     passFailArray[99] = true;
     EasyCAT_BufferIn.Cust.Slot1_valid++;
+    EasyCAT_BufferIn.Cust.Slot1 = misoData[1] + (misoData[2] << 8);
   }
   else
   {
