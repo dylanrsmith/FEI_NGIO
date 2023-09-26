@@ -86,26 +86,26 @@ void task_process_buffer(void *pvParameters)
       uint16_t checkSum = crc.checksumCalculator(spi_slave_rx_buf, 5);
       // spi_slave_tx_buf[0] = checkSum;
       // spi_slave_tx_buf[1] = checkSum >> 8;
-      // spi_slave_tx_buf[0] = 0x01;
-      // spi_slave_tx_buf[1] = 0x02;
-      // spi_slave_tx_buf[2] = 0x03;
-      // spi_slave_tx_buf[3] = 0x04;
-      // spi_slave_tx_buf[4] = 0x05;
-      // spi_slave_tx_buf[5] = 0x06;
-      // spi_slave_tx_buf[6] = 0x07;
-      // spi_slave_tx_buf[7] = 0x08;
-      byte b1 = 0x30;
+      spi_slave_tx_buf[0] = 0x01;
+      spi_slave_tx_buf[1] = 0x02;
+      spi_slave_tx_buf[2] = 0x03;
+      spi_slave_tx_buf[3] = 0x04;
+      spi_slave_tx_buf[4] = 0x05;
+      spi_slave_tx_buf[5] = 0x06;
+      spi_slave_tx_buf[6] = 0x07;
+      spi_slave_tx_buf[7] = 0x08;
+      // byte b1 = 0x30;
 
-      spi_slave_tx_buf[0] = b1;//spi_slave_rx_buf[0];
-      spi_slave_tx_buf[1] = spi_slave_rx_buf[1];
-      spi_slave_tx_buf[2] = spi_slave_rx_buf[2];
-      spi_slave_tx_buf[3] = 5;//spi_slave_rx_buf[3];
-      spi_slave_tx_buf[4] = spi_slave_rx_buf[4];
-      // spi_slave_tx_buf[5] = spi_slave_rx_buf[5];
-      // spi_slave_tx_buf[6] = spi_slave_rx_buf[6];
-      spi_slave_tx_buf[7] = spi_slave_rx_buf[7];
-      spi_slave_tx_buf[5] = checkSum;
-      spi_slave_tx_buf[6] = checkSum >> 8;
+      // spi_slave_tx_buf[0] = b1;//spi_slave_rx_buf[0];
+      // spi_slave_tx_buf[1] = spi_slave_rx_buf[1];
+      // spi_slave_tx_buf[2] = spi_slave_rx_buf[2];
+      // spi_slave_tx_buf[3] = 5;//spi_slave_rx_buf[3];
+      // spi_slave_tx_buf[4] = spi_slave_rx_buf[4];
+      // // spi_slave_tx_buf[5] = spi_slave_rx_buf[5];
+      // // spi_slave_tx_buf[6] = spi_slave_rx_buf[6];
+      // spi_slave_tx_buf[7] = spi_slave_rx_buf[7];
+      // spi_slave_tx_buf[5] = checkSum;
+      // spi_slave_tx_buf[6] = checkSum >> 8;
 
       slot_type.store(spi_slave_rx_buf[2]);
 

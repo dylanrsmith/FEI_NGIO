@@ -10,13 +10,16 @@
 #include <Adafruit_MCP4725.h>
 #include <Wire.h>
 #include <PWM.hpp>
+#include <ble_ota.h>
+#include <WiFi.h>
 
-const char VERSION[] = "V3_C3";
+const char VERSION[] = "V4_C3";
 const char *filename = "/config.txt";
 ESP32SPISlave slave;
 Adafruit_NeoPixel RGBled = Adafruit_NeoPixel(1, 10, NEO_GRB + NEO_KHZ800); // on pin10
 byte newLEDdata[3];
 boolean newDataAvail = false;
+bool ble_enabled = false;
 static constexpr uint32_t BUFFER_SIZE{32};
 uint8_t spi_slave_tx_buf[BUFFER_SIZE];
 uint8_t spi_slave_rx_buf[BUFFER_SIZE];
@@ -29,6 +32,7 @@ const int ESP_D5 = 2; // miso io13b
 // Global atomic variables SLOT TYPE and DATA OUT
 std::atomic<int> data_out_atom(0);
 std::atomic<int> slot_type_atom(0);
+std::atomic<int> ble_state_atom(0);
 
 Adafruit_MCP4725 dac;
 CRC crc;
@@ -44,6 +48,7 @@ int pwmState = LOW;
 
 int slot_number;
 int slot_type;
+int ble_state;
 
 struct Config{
   int slot_number_json;
@@ -144,34 +149,38 @@ void task_process_buffer(void *pvParameters)
     uint16_t checkSumFromS3 = spi_slave_rx_buf[6] + (spi_slave_rx_buf[7] << 8);
     uint16_t checkSumOfS3 = crc.checksumCalculator(spi_slave_rx_buf, 6);
     uint16_t data = data_out_atom.load();
+    int command = 0;
 
     if (checkSumOfS3 == checkSumFromS3 && checkSumFromS3 != 0)
     {
+      command = spi_slave_rx_buf[0];    
       spi_slave_tx_buf[0] = spi_slave_rx_buf[0];
       spi_slave_tx_buf[1] = data;
       spi_slave_tx_buf[2] = data >> 8;
-      spi_slave_tx_buf[3] = spi_slave_rx_buf[3];
-      spi_slave_tx_buf[4] = spi_slave_rx_buf[4];
-      spi_slave_tx_buf[5] = spi_slave_rx_buf[5];
+      spi_slave_tx_buf[3] = spi_slave_rx_buf[3];  // data2
+      spi_slave_tx_buf[4] = spi_slave_rx_buf[4];  // data2 >> 8
+      spi_slave_tx_buf[5] = spi_slave_rx_buf[5];  // data3
+
 
       uint16_t checkSumOfC3 = crc.checksumCalculator(spi_slave_tx_buf, 6);
       spi_slave_tx_buf[6] = checkSumOfC3;
       spi_slave_tx_buf[7] = checkSumOfC3 >> 8;
-
-      slot_type_atom.store(spi_slave_rx_buf[5]);
-
-      // Serial.print("TX: ");
-      // for (size_t i = 0; i < BUFFER_SIZE; ++i)
-      // {
-      //   Serial.printf("%d ", spi_slave_tx_buf[i]);
-      // }
-      // Serial.printf("\n");
-
-      // newDataAvail = true;
-      // newLEDdata[0] = spi_slave_rx_buf[1];
-      // newLEDdata[1] = spi_slave_rx_buf[2];
-      // newLEDdata[2] = spi_slave_rx_buf[3];
     }
+      
+    if(command == 5)
+    {
+      slot_type_atom.store(spi_slave_rx_buf[5]);
+    }
+    else if(command == 6)
+    {
+      ble_state_atom.store(spi_slave_rx_buf[5]);
+    }
+    // Serial.print("TX: ");
+    // for (size_t i = 0; i < BUFFER_SIZE; ++i)
+    // {
+    //   Serial.printf("%d ", spi_slave_tx_buf[i]);
+    // }
+    // Serial.printf("\n");
 
     slave.pop();
 
@@ -192,6 +201,7 @@ void setup()
   if(0 < slot_type < 9)
   {
     RGBled.setPixelColor(0, primaryColors[slot_type]);
+    RGBled.setBrightness(128);
     RGBled.show();
   }
 
@@ -253,7 +263,9 @@ void loop()
 {
   digitalWrite(SLOT_TP1pin,HIGH);
   slot_type = slot_type_atom.load();
+  ble_state = ble_state_atom.load();
   RGBled.setPixelColor(0, primaryColors[slot_type]);
+  RGBled.setBrightness(128);
   RGBled.show();
   uint16_t data;
 
@@ -292,6 +304,20 @@ void loop()
     break;
   }
   data_out_atom.store(data);
+
+  // BLE OTA check
+  if(ble_state == 1 && ble_enabled == false){
+    // BLE Configuration
+    String slot = "SLOT_1";
+    // String mac = WiFi.macAddress();
+    ota_dfu_ble.begin(slot);
+    ble_enabled = true;
+    delay(500);
+  }
+  else if((ble_state == 0) && ble_enabled){
+    ESP.restart();    // if ble is on and received message to turn off, reboot ESP
+  }
+
   delayMicroseconds(100);
   digitalWrite(SLOT_TP1pin,LOW);
 }
