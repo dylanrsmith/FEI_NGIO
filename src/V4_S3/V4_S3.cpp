@@ -280,7 +280,7 @@ void loop()
   EasyCAT_MainTask();
 
   //  unsigned long animationStart = millis();
-  int numberOfSlots = 1;
+  int numberOfSlots = 8;
 
   if(EasyCAT_BufferOut.Cust.slot_type != 0){
     slot_type = EasyCAT_BufferOut.Cust.slot_type;

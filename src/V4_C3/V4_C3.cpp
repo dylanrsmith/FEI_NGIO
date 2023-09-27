@@ -264,9 +264,12 @@ void loop()
   digitalWrite(SLOT_TP1pin,HIGH);
   slot_type = slot_type_atom.load();
   ble_state = ble_state_atom.load();
-  RGBled.setPixelColor(0, primaryColors[slot_type]);
-  RGBled.setBrightness(128);
-  RGBled.show();
+  if(!ble_enabled)
+  {
+    RGBled.setPixelColor(0, primaryColors[slot_type]);
+    RGBled.setBrightness(128);
+    RGBled.show();
+  }
   uint16_t data;
 
   switch (slot_type)
@@ -283,7 +286,7 @@ void loop()
     break;
   case 4:
     data = 4000;
-    dac.setVoltage(512,false);
+    // dac.setVoltage(512,false);
     break;
   case 5:
     data = my_pwm.getValue();
@@ -308,13 +311,20 @@ void loop()
   // BLE OTA check
   if(ble_state == 1 && ble_enabled == false){
     // BLE Configuration
-    String slot = "SLOT_1";
-    // String mac = WiFi.macAddress();
-    ota_dfu_ble.begin(slot);
+    String slot = "SLOT_";
+    String mac = WiFi.macAddress();
+    ota_dfu_ble.begin(slot+mac);
     ble_enabled = true;
+    RGBled.setPixelColor(0, primaryColors[5]);
+    RGBled.setBrightness(128);
     delay(500);
   }
-  else if((ble_state == 0) && ble_enabled){
+  else if((ble_state == 0) && (ble_enabled == true)){
+    RGBled.setPixelColor(0, primaryColors[6]);
+    RGBled.setBrightness(128);
+    ESP.restart();    // if ble is on and received message to turn off, reboot ESP
+  }
+  else if(ble_state == 2){
     ESP.restart();    // if ble is on and received message to turn off, reboot ESP
   }
 
